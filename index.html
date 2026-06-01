@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de Notas Universitarias</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            color: #333;
+            max-width: 700px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        .container {
+            background: #fff;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h1, h2 { text-align: center; color: #1a73e8; }
+        .config-section {
+            background: #e8f0fe;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .config-section input {
+            width: 60px;
+            font-weight: bold;
+            text-align: center;
+        }
+        .division {
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            background: #fafafa;
+            position: relative;
+        }
+        .division h3 { margin-top: 0; font-size: 16px; color: #555; }
+        label { font-weight: bold; font-size: 14px; display: block; margin-top: 10px; }
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .btn {
+            background: #1a73e8;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+            margin-top: 10px;
+        }
+        .btn:hover { background: #1557b0; }
+        .btn-add { background: #34a853; margin-bottom: 20px; }
+        .btn-add:hover { background: #2b803f; }
+        .btn-delete {
+            background: #ea4335;
+            width: auto;
+            padding: 5px 10px;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 12px;
+        }
+        .btn-delete:hover { background: #c5221f; }
+        #resultados {
+            margin-top: 25px;
+            padding: 20px;
+            border-radius: 8px;
+            background: #f8f9fa;
+            border: 2px solid #ddd;
+            display: none;
+        }
+        .alerta { color: #ea4335; font-weight: bold; }
+        .exito { color: #34a853; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Calculadora de Notas</h1>
+    
+    <div class="config-section">
+        <label for="nota-minima">Nota mínima para pasar (Ej. 71):</label>
+        <input type="number" id="nota-minima" value="71" min="1" max="100">
+    </div>
+
+    <div id="divisiones-container">
+        </div>
+
+    <button class="btn btn-add" onclick="agregarDivision()">+ Agregar División (Ej. Parciales, Tareas)</button>
+    <button class="btn" onclick="calcularNotas()">Calcular Mi Estado</button>
+
+    <div id="resultados"></div>
+</div>
+
+<script>
+    let divisionCount = 0;
+
+    // Agregar una división por defecto al cargar
+    window.onload = function() {
+        agregarDivision('Parciales');
+        agregarDivision('Tareas');
+    };
+
+    function agregarDivision(nombrePorDefecto = '') {
+        divisionCount++;
+        const container = document.getElementById('divisiones-container');
+        const div = document.createElement('div');
+        div.className = 'division';
+        div.id = `div-${divisionCount}`;
+        
+        div.innerHTML = `
+            <button class="btn btn-delete" onclick="eliminarDivision('div-${divisionCount}')">Eliminar</button>
+            <h3>División ${divisionCount}</h3>
+            
+            <label>Nombre de la división:</label>
+            <input type="text" class="nombre-div" placeholder="Ej. Laboratorios" value="${nombrePorDefecto}">
+            
+            <label>Valor de esta división (% del total):</label>
+            <input type="number" class="peso-div" placeholder="Ej. 30" min="0" max="100">
+            
+            <label>Notas obtenidas (separadas por coma):</label>
+            <input type="text" class="notas-div" placeholder="Ej. 85, 90, 78 (deja en blanco si aún no tienes)">
+        `;
+        container.appendChild(div);
+    }
+
+    function eliminarDivision(id) {
+        document.getElementById(id).remove();
+    }
+
+    function calcularNotas() {
+        const notaMinima = parseFloat(document.getElementById('nota-minima').value);
+        const divisiones = document.querySelectorAll('.division');
+        let pesoTotal = 0;
+        let notaAcumulada = 0;
+        let reporte = '<h3>Resumen de tus notas:</h3><ul>';
+
+        divisiones.forEach(div => {
+            const nombre = div.querySelector('.nombre-div').value || 'Sin nombre';
+            const peso = parseFloat(div.querySelector('.peso-div').value) || 0;
+            const notasStr = div.querySelector('.notas-div').value;
+            
+            pesoTotal += peso;
+
+            if (notasStr.trim() !== '') {
+                const notasArray = notasStr.split(',').map(n => parseFloat(n.trim())).filter(n => !isNaN(n));
+                if (notasArray.length > 0) {
+                    const promedioDiv = notasArray.reduce((a, b) => a + b, 0) / notasArray.length;
+                    const puntosAportados = promedioDiv * (peso / 100);
+                    notaAcumulada += puntosAportados;
+                    reporte += `<li><b>${nombre}</b>: Promedio de ${promedioDiv.toFixed(2)} — aporta ${puntosAportados.toFixed(2)} pts al total.</li>`;
+                } else {
+                    reporte += `<li><b>${nombre}</b>: Sin notas válidas registradas.</li>`;
+                }
+            } else {
+                reporte += `<li><b>${nombre}</b>: Aún no hay notas.</li>`;
+            }
+        });
+
+        reporte += '</ul>';
+
+        const resultadosDiv = document.getElementById('resultados');
+        resultadosDiv.style.display = 'block';
+
+        if (pesoTotal > 100) {
+            resultadosDiv.innerHTML = `<p class="alerta">¡Error! La suma de los porcentajes es ${pesoTotal}%. No puede superar el 100%. Revisa los valores ingresados.</p>`;
+            return;
+        }
+
+        const porcentajeFaltante = 100 - pesoTotal;
+        const puntosFaltantesParaPasar = notaMinima - notaAcumulada;
+
+        let mensajeFinal = `<p><b>Nota acumulada actualmente:</b> ${notaAcumulada.toFixed(2)} / 100</p>`;
+        mensajeFinal += `<p><b>Porcentaje de evaluación faltante:</b> ${porcentajeFaltante}%</p><hr>`;
+
+        if (porcentajeFaltante === 0) {
+            if (notaAcumulada >= notaMinima) {
+                mensajeFinal += `<p class="exito">¡Felicidades! Terminaste con ${notaAcumulada.toFixed(2)}. Has superado la materia.</p>`;
+            } else {
+                mensajeFinal += `<p class="alerta">Tu nota final es ${notaAcumulada.toFixed(2)}. Lamentablemente no alcanzaste los ${notaMinima} puntos para pasar.</p>`;
+            }
+        } else {
+            if (puntosFaltantesParaPasar <= 0) {
+                mensajeFinal += `<p class="exito">¡Ya pasaste la materia! Todo lo que saques en el ${porcentajeFaltante}% restante solo subirá tu nota final.</p>`;
+            } else {
+                // Calcular cuánto necesita sacar sobre 100 en lo que falta
+                const notaNecesariaEnFaltante = (puntosFaltantesParaPasar / (porcentajeFaltante / 100)).toFixed(2);
+                
+                if (notaNecesariaEnFaltante > 100) {
+                    mensajeFinal += `<p class="alerta">Necesitarías sacar un promedio de ${notaNecesariaEnFaltante} (sobre 100) en el ${porcentajeFaltante}% restante. Matemáticamente es imposible evitar el fracaso a menos que ganes puntos extra.</p>`;
+                } else {
+                    mensajeFinal += `<p style="font-size: 18px; font-weight: bold; color: #1a73e8;">Para evitar el fracaso, necesitas promediar mínimo <span style="font-size: 24px;">${notaNecesariaEnFaltante}</span> (sobre 100) en el ${porcentajeFaltante}% de la nota que aún falta por evaluar.</p>`;
+                }
+            }
+        }
+
+        resultadosDiv.innerHTML = reporte + mensajeFinal;
+    }
+</script>
+
+</body>
+</html>
